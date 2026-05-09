@@ -5,7 +5,7 @@ const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('.' ));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'abyssora-secret-key-2024',
   resave: false,
