@@ -1,17 +1,32 @@
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
+const mongoose = require('mongoose');
 const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(express.static('.' ));
+app.use(express.static('public'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'abyssora-secret-key-2024',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false, maxAge: 86400000 }
 }));
+
+// ── MONGODB ──
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connecté'))
+  .catch(e => console.error('❌ MongoDB erreur:', e.message));
+
+const AvisSchema = new mongoose.Schema({
+  rank: String, target: String, mainStar: Number,
+  crits: Object, text: String,
+  author: String, authorAvatar: String, authorId: String,
+  date: String,
+}, { timestamps: true });
+
+const Avis = mongoose.model('Avis', AvisSchema);
 
 const CLIENT_ID     = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -31,10 +46,8 @@ const ROLES = {
   'Gestionnaire':        { id: '1495098683283210372', color: '#a0a0c0', icon: '⚙️', tier: 9 },
 };
 
-// ── CACHE MEMBRES ──
 let membersCache = [];
 let lastFetch = 0;
-let avisData = [];
 
 async function fetchGuildMembers() {
   if (Date.now() - lastFetch < 30000) return membersCache;
@@ -131,27 +144,26 @@ app.get('/api/roles', async (req, res) => {
 });
 
 // ── API AVIS ──
-app.get('/api/avis', (req, res) => {
-  res.json(avisData);
+app.get('/api/avis', async (req, res) => {
+  const avis = await Avis.find().sort({ createdAt: -1 });
+  res.json(avis);
 });
 
-app.post('/api/avis', (req, res) => {
+app.post('/api/avis', async (req, res) => {
   if (!req.session.user) return res.status(401).json({ error: 'Non connecté' });
   const { rank, target, mainStar, crits, text } = req.body;
-  if (!rank || !target || !mainStar || !text) return res.status(400).json({ error: 'Champs manquants' });
-  const avis = {
-    id: Date.now(),
+  if (!rank || !target || !mainStar || !text)
+    return res.status(400).json({ error: 'Champs manquants' });
+  const avis = await Avis.create({
     rank, target, mainStar, crits, text,
     author: req.session.user.username,
     authorAvatar: req.session.user.avatar,
     authorId: req.session.user.id,
     date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-  };
-  avisData.unshift(avis);
+  });
   res.json({ success: true, avis });
 });
 
-// Refresh manuel
 app.post('/api/refresh', async (req, res) => {
   lastFetch = 0;
   await fetchGuildMembers();
@@ -161,6 +173,5 @@ app.post('/api/refresh', async (req, res) => {
 app.listen(3000, () => {
   console.log('🚀 Abyssora Staff running on port 3000');
   fetchGuildMembers();
-  // Auto-refresh toutes les 60 secondes
   setInterval(() => { lastFetch = 0; fetchGuildMembers(); }, 60000);
 });
