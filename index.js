@@ -185,7 +185,7 @@ app.post('/api/refresh', async (req, res) => {
   res.json({ success: true, count: membersCache.length });
 });
 
-app.listen(3000, () => {
+app.listen(process.env.PORT || 3000, () => { 
   console.log('🚀 Abyssora Staff running on port 3000');
   fetchGuildMembers();
   setInterval(() => { lastFetch = 0; fetchGuildMembers(); }, 60000);
