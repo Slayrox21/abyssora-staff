@@ -184,7 +184,9 @@ app.post('/api/refresh', async (req, res) => {
   await fetchGuildMembers();
   res.json({ success: true, count: membersCache.length });
 });
-
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 app.listen(process.env.PORT || 3000, () => { 
   console.log('🚀 Abyssora Staff running on port 3000');
   fetchGuildMembers();
