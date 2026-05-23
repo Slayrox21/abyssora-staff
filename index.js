@@ -3,6 +3,7 @@ const session = require('express-session');
 const axios = require('axios');
 const mongoose = require('mongoose');
 const path = require('path');
+const MongoStore = require('connect-mongo');
 
 const app = express();
 app.use(express.json());
@@ -11,7 +12,8 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'abyssora-secret-key-2024',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 86400000 }
+  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+  cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
 // ── MONGODB ──
